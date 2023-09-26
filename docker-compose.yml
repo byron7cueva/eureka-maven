@@ -1,0 +1,89 @@
+x-build: &build_global
+  dockerfile: docker/Dockerfile
+
+x-env_file: &env_file_global
+  env_file:
+    - .env
+  restart: always
+  networks:
+    - bmc
+
+x-services-volumes:
+  - &common-services-volumes
+    /opt/example-root/.env:/app/.env
+
+services:
+  discovery-service:
+    build:
+      <<: *build_global
+      args:
+        app: discovery-service
+    container_name: discovery-service
+    ports:
+      - ${DISCOVERY_SERVICE_PORT}:${DISCOVERY_SERVICE_PORT}
+    image: discovery-service
+    environment:
+      - SERVER_PORT=${DISCOVERY_SERVICE_PORT}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    volumes:
+      - *common-services-volumes
+
+  gateway-service:
+    build:
+      <<: *build_global
+      args:
+        app: gateway-service
+    container_name: gateway-service
+    ports:
+      - ${API_GATEWAY_PORT}:${API_GATEWAY_PORT}
+    image: gateway-service
+    environment:
+      - SERVER_PORT=${API_GATEWAY_PORT}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    volumes:
+      - *common-services-volumes
+    depends_on:
+      - discovery-service
+
+  my-service:
+    build:
+      <<: *build_global
+      args:
+        app: my-service
+    container_name: my-service
+    ports:
+      - ${MY_SERVICE_PORT}:${MY_SERVICE_PORT}
+    image: my-service
+    environment:
+      - SERVER_PORT=${MY_SERVICE_PORT}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    volumes:
+      - *common-services-volumes
+    depends_on:
+      - discovery-service
+      - gateway-service
+
+networks:
+  bmc:
+    name: bmc

@@ -1,0 +1,90 @@
+x-build: &build_global
+  dockerfile: docker/Dockerfile
+
+x-env_file: &env_file_global
+  env_file:
+    - .env
+  restart: always
+  networks:
+    - bmc
+
+x-services-volumes:
+  - &common-services-volumes
+    /opt/example-root/.env:/app/.env
+
+services:
+  discovery-service:
+    build:
+      <<: *build_global
+      args:
+        app: discovery-service
+        profile_default: ${SPRING_PROFILES_ACTIVE}
+    container_name: discovery-service
+    ports:
+      - ${DISCOVERY_SERVICE_PORT}:${DISCOVERY_SERVICE_PORT}
+    image: discovery-service
+    environment:
+      - SERVER_PORT=${DISCOVERY_SERVICE_PORT}
+    <<: *env_file_global
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    volumes:
+      - *common-services-volumes
+
+  api-gateway:
+    build:
+      <<: *build_global
+      args:
+        app: gateway-service
+        profiles_default: ${SPRING_PROFILES_ACTIVE}
+    container_name: gateway-service
+    ports:
+      - '8080:8080'
+    image: gateway-service
+    environment:
+      - SERVER_PORT=8080
+    <<: *env_file_global
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    volumes:
+      - *common-services-volumes
+
+  my-service:
+    build:
+      <<: *build_global
+      args:
+        app: my-service
+        profiles_default: ${SPRING_PROFILES_ACTIVE}
+    container_name: my-service
+    ports:
+      - '8081:8081'
+    image: my-service
+    environment:
+      - SERVER_PORT=8081
+    <<: *env_file_global
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    volumes:
+      - *common-services-volumes
+
+networks:
+  bmc:
+    name: bmc
